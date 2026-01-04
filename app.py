@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import joblib
 
 st.title("Student Pass/Fail Prediction System")
 
