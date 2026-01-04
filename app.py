@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 
-st.title("Student Pass/Fail Prediction System")
+st.markdown("<h1 style='color:blue;'>Student Pass/Fail Prediction System</h1>", unsafe_allow_html=True)
 
 st.write("Enter student academic scores to predict outcome.")
 
