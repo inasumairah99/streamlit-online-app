@@ -17,9 +17,9 @@ def get_synced_score(subject, default=75):
 
     # Both inputs always use session_state as value
     with col1:
-        slider_val = st.slider(f"{subject} Score (Slider)", 0, 100, value=st.session_state[f"{subject}_score"], key=f"{subject}_slider")
+        slider_val = st.slider(f"{subject} Score ", 0, 100, value=st.session_state[f"{subject}_score"], key=f"{subject}_slider")
     with col2:
-        input_val = st.number_input(f"{subject} Score (Box)", min_value=0, max_value=100, value=st.session_state[f"{subject}_score"], key=f"{subject}_input")
+        input_val = st.number_input(f"{subject} Score ", min_value=0, max_value=100, value=st.session_state[f"{subject}_score"], key=f"{subject}_input")
 
     # Update session_state if either changed
     # Use last changed value (slider or input) to update session_state
