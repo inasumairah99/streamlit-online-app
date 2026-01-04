@@ -24,4 +24,20 @@ def get_synced_score(subject, default=75):
     if slider_val != st.session_state[f"{subject}_score"]:
         st.session_state[f"{subject}_score"] = slider_val
     elif input_val != st.session_state[f"{subject}_score"]:
-        st.session_state[f"{subject}_score"] = inp_]()_
+        st.session_state[f"{subject}_score"] = input_val
+
+    return st.session_state[f"{subject}_score"]
+
+# Get scores
+math = get_synced_score("Math")
+reading = get_synced_score("Reading")
+writing = get_synced_score("Writing")
+
+# -------------------------
+if st.button("Predict"):
+    avg_score = np.mean([math, reading, writing])
+    
+    if avg_score >= 90:
+        st.success("Prediction: PASS")
+    else:
+        st.error("Prediction: FAIL")
