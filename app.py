@@ -4,35 +4,24 @@ import numpy as np
 # Blue colored title
 st.markdown("<h1 style='color:blue;'>Student Pass/Fail Prediction System</h1>", unsafe_allow_html=True)
 
-st.write("Enter student academic scores to predict outcome. You can use the slider or enter the marks in the box.")
+st.write("Enter student academic scores to predict outcome. You can use the slider or enter the marks in the box. Both are synced.")
 
 # -------------------------
-# Function to get input from slider or text box
-def get_score(subject, default=75):
-    col1, col2 = st.columns([3,1])  # slider wider, box smaller
+# Function to get synced slider + number input
+def get_synced_score(subject, default=75):
+    # Initialize session state for this subject if not exists
+    if f"{subject}_score" not in st.session_state:
+        st.session_state[f"{subject}_score"] = default
+
+    col1, col2 = st.columns([3,1])
+
     with col1:
-        score_slider = st.slider(f"{subject} Score (Slider)", 0, 100, default, key=f"{subject}_slider")
+        slider_val = st.slider(f"{subject} Score (Slider)", 0, 100, st.session_state[f"{subject}_score"], key=f"{subject}_slider")
     with col2:
-        score_input = st.number_input(f"{subject} Score (Box)", min_value=0, max_value=100, value=default, key=f"{subject}_input")
-    
-    # If user enters in box, use that; otherwise use slider
-    # Prioritize text input if it is different from default
-    if score_input != default:
-        return score_input
-    else:
-        return score_slider
+        input_val = st.number_input(f"{subject} Score (Box)", min_value=0, max_value=100, value=st.session_state[f"{subject}_score"], key=f"{subject}_input")
 
-# Get scores
-math = get_score("Math")
-reading = get_score("Reading")
-writing = get_score("Writing")
-
-# -------------------------
-if st.button("Predict"):
-    avg_score = np.mean([math, reading, writing])
-    
-    if avg_score >= 90:
-        st.success("Prediction: PASS")
-    else:
-        st.error("Prediction: FAIL")
-
+    # Determine which changed and update session state
+    if slider_val != st.session_state[f"{subject}_score"]:
+        st.session_state[f"{subject}_score"] = slider_val
+    elif input_val != st.session_state[f"{subject}_score"]:
+        st.session_state[f"{subject}_score"] = inp_]()_
