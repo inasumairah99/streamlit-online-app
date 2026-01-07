@@ -1,0 +1,3 @@
+git add StudentsPerformance_final_encoded.csv
+git commit -m "Add encoded dataset"
+git push
