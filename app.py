@@ -1,75 +1,92 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="Student Performance Predictor", layout="centered")
+# 1. Page Configuration
+st.set_page_config(page_title="Student Performance (Logistic Regression)", layout="centered")
 
-# --- TITLE & DESCRIPTION ---
-st.title("🎓 Student Performance Prediction App")
-st.write("""
-This app predicts if a student will be a 'High Performer' (Pass) or 'Needs Improvement' (Fail) based on their profile and scores.
-""")
+# 2. Load the cleaned and encoded data
+@st.cache_data
+def load_data():
+    # Load the dataset you saved after cell 2/3
+    return pd.read_csv("StudentsPerformance_final_encoded.csv")
 
-# --- SIDEBAR: USER INPUT ---
-st.sidebar.header("Student Information")
+df = load_data()
 
-def get_user_input():
-    # Numerical Inputs (Math, Reading, Writing)
-    math = st.sidebar.slider("Math Score", 0, 100, 70)
-    reading = st.sidebar.slider("Reading Score", 0, 100, 70)
-    writing = st.sidebar.slider("Writing Score", 0, 100, 70)
+# 3. Model & Scaler Preparation
+@st.cache_resource
+def setup_model(data):
+    # Separate Features and Target
+    X = data.drop(columns=['Pass/Fail'])
+    y = data['Pass/Fail']
     
-    # Categorical Inputs (Based on your dataset)
-    gender = st.sidebar.selectbox("Gender", ["male", "female"])
-    race = st.sidebar.selectbox("Race/Ethnicity", ["group A", "group B", "group C", "group D", "group E"])
-    parent_edu = st.sidebar.selectbox("Parental Education", 
-                                     ["some high school", "high school", "some college", 
-                                      "associate's degree", "bachelor's degree", "master's degree"])
-    lunch = st.sidebar.selectbox("Lunch Type", ["standard", "free/reduced"])
-    prep_course = st.sidebar.selectbox("Test Prep Course", ["none", "completed"])
-
-    # Create a dictionary for the inputs
-    data = {
-        'math score': math,
-        'reading score': reading,
-        'writing score': writing,
-        'gender': gender,
-        'race/ethnicity': race,
-        'parental level of education': parent_edu,
-        'lunch': lunch,
-        'test preparation course': prep_course
-    }
-    return pd.DataFrame(data, index=[0])
-
-# Store user input
-input_df = get_user_input()
-
-# --- DISPLAY INPUT ---
-st.subheader("Selected Student Profile")
-st.write(input_df)
-
-# --- PREDICTION LOGIC ---
-# Note: In a real project, you would load your saved .pkl model here.
-# For this demo, we use the logic from your notebook (Mean Score >= 90 is a Pass).
-if st.button("Predict Result"):
-    # Calculate Mean Score
-    avg_score = input_df[['math score', 'reading score', 'writing score']].mean(axis=1).values[0]
+    # Logistic Regression requires scaling for better performance
+    scaler = StandardScaler()
+    numerical_cols = ['math score', 'reading score', 'writing score']
     
+    X_scaled = X.copy()
+    X_scaled[numerical_cols] = scaler.fit_transform(X[numerical_cols])
+    
+    # Train Logistic Regression
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_scaled, y)
+    
+    return model, scaler, X.columns
+
+model, scaler, model_columns = setup_model(df)
+
+# 4. Streamlit GUI Layout
+st.title("📊 Student Performance Predictor")
+st.subheader("Model: Logistic Regression")
+
+with st.form("input_form"):
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        math = st.number_input("Math Score", 0, 100, 70)
+        reading = st.number_input("Reading Score", 0, 100, 70)
+        writing = st.number_input("Writing Score", 0, 100, 70)
+    
+    with col2:
+        gender = st.selectbox("Gender", ["female", "male"])
+        lunch = st.selectbox("Lunch Type", ["standard", "free/reduced"])
+        prep = st.selectbox("Test Prep Course", ["none", "completed"])
+        # Add other categories based on your dataset columns
+        race = st.selectbox("Race/Ethnicity", ["group A", "group B", "group C", "group D", "group E"])
+
+    submit = st.form_submit_button("Analyze Student")
+
+# 5. Prediction Logic
+if submit:
+    # Create a DataFrame for the single input row
+    input_df = pd.DataFrame(0, index=[0], columns=model_columns)
+    
+    # Fill Numerical Values
+    input_df['math score'] = math
+    input_df['reading score'] = reading
+    input_df['writing score'] = writing
+    
+    # Apply Scaling to numerical values (using the saved scaler)
+    input_df[['math score', 'reading score', 'writing score']] = scaler.transform(
+        input_df[['math score', 'reading score', 'writing score']]
+    )
+    
+    # Fill One-Hot Encoded Values
+    if gender == "male": input_df['gender_male'] = 1
+    if lunch == "standard": input_df['lunch_standard'] = 1
+    if prep == "none": input_df['test preparation course_none'] = 1
+    if race != "group A": input_df[f"race/ethnicity_{race}"] = 1
+    
+    # Predict Probability and Class
+    prob = model.predict_proba(input_df)[0][1]
+    prediction = model.predict(input_df)[0]
+    
+    # 6. Display Results
     st.divider()
-    st.subheader("Prediction Result:")
-    
-    if avg_score >= 90:
-        st.success(f"### Result: PASS (High Performer) ✅")
-        st.write(f"The average score is {avg_score:.2f}. This student is in the top bracket.")
+    if prediction == 1:
+        st.success(f"### Prediction: PASS (90+ Avg)")
+        st.metric("Pass Probability", f"{prob:.2%}")
     else:
-        st.error(f"### Result: FAIL (Needs Improvement) ❌")
-        st.write(f"The average score is {avg_score:.2f}. A score of 90+ is required for 'Pass' status in this model.")
-
-# --- MODEL INFO ---
-st.info("Model Used: Logistic Regression (Highest Stability in testing).")
-
-
+        st.error(f"### Prediction: FAIL (< 90 Avg)")
+        st.metric("Pass Probability", f"{prob:.2%}")
